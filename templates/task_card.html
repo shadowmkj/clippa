@@ -94,9 +94,31 @@
         </button>
       </form>
 
-      <!-- Out-of-band swap to update this item in the sidebar immediately -->
-      <div id="clip-item-{{.RowIndex}}" hx-swap-oob="outerHTML">
-        {{template "clip_item.html" .}}
+      <!-- Out-of-band swap to update this item in the sidebar immediately without nested wrappers -->
+      <div
+        id="clip-item-{{.RowIndex}}"
+        class="clip-item selected"
+        data-status="{{if .IsComplete}}done{{else}}pending{{end}}"
+        hx-get="/clip?row={{.RowIndex}}"
+        hx-target="#task-card"
+        hx-swap="outerHTML"
+        hx-swap-oob="outerHTML">
+        <div class="clip-item-header">
+          <span class="clip-name">📹 {{.Name}}</span>
+          {{if .IsComplete}}
+            <span class="badge badge-done">✓ Done</span>
+          {{else}}
+            <span class="badge badge-pending">⏳ Pending</span>
+          {{end}}
+        </div>
+        <div class="clip-meta">
+          <span>Run {{.Run}} (Row {{.RowIndex}})</span>
+          {{if .IsComplete}}
+            <span style="color: #34d399;">Act: {{.ActualIn}} / {{.ActualOut}}</span>
+          {{else if or .ModelIn .ModelOut}}
+            <span style="color: #38bdf8;">Pred: {{.ModelIn}} / {{.ModelOut}}</span>
+          {{end}}
+        </div>
       </div>
     {{end}}
   {{else}}

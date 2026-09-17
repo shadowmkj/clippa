@@ -176,6 +176,8 @@
     }
     .clip-list {
       flex: 1;
+      width: 100%;
+      box-sizing: border-box;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       padding: 0.5rem;
@@ -184,6 +186,8 @@
       gap: 0.4rem;
     }
     .clip-item {
+      width: 100%;
+      box-sizing: border-box;
       padding: 0.75rem;
       border-radius: 8px;
       background-color: var(--card-bg);
@@ -210,6 +214,7 @@
       justify-content: space-between;
       align-items: center;
       gap: 0.5rem;
+      width: 100%;
     }
     .clip-name {
       font-size: 0.88rem;
@@ -217,13 +222,16 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 210px;
+      flex: 1;
+      min-width: 0;
     }
     .clip-meta {
       display: flex;
       justify-content: space-between;
+      align-items: center;
       font-size: 0.75rem;
       color: var(--text-muted);
+      width: 100%;
     }
     .badge {
       display: inline-block;
