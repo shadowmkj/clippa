@@ -6,12 +6,14 @@ A lightweight, zero-build Go web application for reviewing video traffic footage
 
 ## 🌟 Key Features
 
+- **Master-Detail Review Interface**: Full-screen collapsible sidebar with filterable clip list (`All`, `Pending`, `Done`).
+- **Non-Sequential Random Access**: Multiple annotators can click and review any clip independently.
+- **One-Click Google Drive Sync**: Automatically scans your Google Drive folder and imports any missing video filenames to Google Sheets.
+- **Mobile-Friendly**: Slide-in responsive drawer with dimmed backdrop and touch-optimized controls for mobile and tablet labeling.
 - **Zero-Build Architecture**: Vanilla HTML5/CSS and HTMX 2.0.4 loaded via CDN. No Node.js, npm, Webpack, or Tailwind required.
-- **Embedded Google Drive Player**: Automatically indexes files from a Google Drive folder and embeds responsive 16:9 iframe video previews (`https://drive.google.com/file/d/{FILE_ID}/preview`).
+- **Embedded Google Drive Player**: Responsive 16:9 iframe video previews (`https://drive.google.com/file/d/{FILE_ID}/preview`).
 - **Atomic Google Sheets Sync**: Updates columns `E` (`actual_in`) and `F` (`actual_out`) using `USER_ENTERED` formatting.
-- **Seamless HTMX Transitions**: Form submissions swap `#task-card` (`hx-swap="outerHTML"`) instantly without full page reloads.
-- **Fast Keyboard Workflow**: Automatic autofocus on ground truth numeric inputs for rapid labeling.
-- **Robust Error Handling**: Short-row padding, missing Drive file fallbacks, and non-crashing Google API error recovery.
+- **Seamless HTMX Transitions**: Form submissions update the sheet, show a save confirmation, and update the sidebar badge via HTMX Out-of-Band (`hx-swap-oob`) swap.
 
 ---
 
@@ -40,7 +42,7 @@ The target Google Spreadsheet must follow this column structure:
    - **Google Drive Folder**: Share with **Viewer** role.
 
 ### 2. Configuration
-Create a `config.json` file in the root directory (or use `config.example.json`):
+Create a `config.json` file in the root directory (or copy `config.example.json`):
 
 ```json
 {
@@ -59,7 +61,44 @@ Create a `config.json` file in the root directory (or use `config.example.json`)
 - `CLIPPA_CREDENTIALS_FILE`
 - `PORT`
 
-### 3. Run the Application
+---
+
+## 🐳 Running with Docker
+
+### Using Docker Compose (Recommended)
+```bash
+docker compose up --build -d
+```
+Visit `http://localhost:8080`.
+
+To view logs:
+```bash
+docker compose logs -f
+```
+
+To stop:
+```bash
+docker compose down
+```
+
+### Using Plain Docker
+```bash
+# 1. Build container image
+docker build -t clippa:latest .
+
+# 2. Run with configuration mounted
+docker run -d \
+  --name clippa \
+  -p 8080:8080 \
+  -v $(pwd)/config.json:/app/config.json:ro \
+  -v $(pwd)/credentials.json:/app/credentials.json:ro \
+  clippa:latest
+```
+
+---
+
+## 💻 Running Locally without Docker
+
 ```bash
 go run .
 ```
