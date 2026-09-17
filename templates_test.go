@@ -7,66 +7,45 @@ import (
 	"testing"
 )
 
-func TestTemplates_RenderTaskCard_Pending(t *testing.T) {
-	tmpl, err := template.ParseFiles("templates/index.html", "templates/task_card.html")
+func TestTemplates_RenderMasterDetail(t *testing.T) {
+	tmpl, err := template.ParseFiles(
+		"templates/index.html",
+		"templates/sidebar.html",
+		"templates/clip_item.html",
+		"templates/task_card.html",
+	)
 	if err != nil {
 		t.Fatalf("failed to parse templates: %v", err)
 	}
 
-	task := ClipTask{
-		RowIndex:       2,
-		Name:           "sample_traffic.mp4",
-		Run:            "1",
-		ModelIn:        "14",
-		ModelOut:       "8",
-		DriveFileID:    "1AbC_xyz123",
-		TotalClips:     10,
-		CompletedCount: 3,
-		QueuePosition:  4,
-		ProgressPct:    30,
-		IsCompleted:    false,
+	page := PageData{
+		TotalClips:     2,
+		CompletedCount: 1,
+		PendingCount:   1,
+		ProgressPct:    50,
+		Clips: []ClipItem{
+			{RowIndex: 2, Name: "clip_done.mp4", Run: "1", IsComplete: true, IsSelected: false},
+			{RowIndex: 3, Name: "clip_pending.mp4", Run: "1", IsComplete: false, IsSelected: true, DriveFileID: "drive-xyz"},
+		},
+		SelectedClip: &ClipItem{
+			RowIndex:    3,
+			Name:        "clip_pending.mp4",
+			Run:         "1",
+			DriveFileID: "drive-xyz",
+			IsComplete:  false,
+		},
 	}
 
 	var buf bytes.Buffer
-	if err := tmpl.ExecuteTemplate(&buf, "task_card.html", task); err != nil {
-		t.Fatalf("failed to execute task_card template: %v", err)
+	if err := tmpl.ExecuteTemplate(&buf, "index.html", page); err != nil {
+		t.Fatalf("failed to render index: %v", err)
 	}
 
 	html := buf.String()
-	if !strings.Contains(html, "sample_traffic.mp4") {
-		t.Errorf("expected sample_traffic.mp4 in card html")
+	if !strings.Contains(html, "clip_done.mp4") || !strings.Contains(html, "clip_pending.mp4") {
+		t.Errorf("expected both clips in sidebar HTML")
 	}
-	if !strings.Contains(html, "https://drive.google.com/file/d/1AbC_xyz123/preview") {
-		t.Errorf("expected google drive preview iframe url")
-	}
-	if !strings.Contains(html, `hx-post="/submit"`) {
-		t.Errorf("expected hx-post attribute in form")
-	}
-	if !strings.Contains(html, `hx-target="#task-card"`) {
-		t.Errorf("expected hx-target=#task-card in form")
-	}
-}
-
-func TestTemplates_RenderTaskCard_Completed(t *testing.T) {
-	tmpl, err := template.ParseFiles("templates/index.html", "templates/task_card.html")
-	if err != nil {
-		t.Fatalf("failed to parse templates: %v", err)
-	}
-
-	task := ClipTask{
-		TotalClips:     10,
-		CompletedCount: 10,
-		ProgressPct:    100,
-		IsCompleted:    true,
-	}
-
-	var buf bytes.Buffer
-	if err := tmpl.ExecuteTemplate(&buf, "task_card.html", task); err != nil {
-		t.Fatalf("failed to execute completed template: %v", err)
-	}
-
-	html := buf.String()
-	if !strings.Contains(html, "All Clips Completed") {
-		t.Errorf("expected completion message in card html")
+	if !strings.Contains(html, "toggle-sidebar-btn") {
+		t.Errorf("expected sidebar toggle button in HTML")
 	}
 }

@@ -36,25 +36,72 @@ func ParseSheetRows(rawRows [][]interface{}) []SheetRow {
 	return dataRows
 }
 
-func BuildTaskQueue(rows []SheetRow, driveResolver func(name string) string) *ClipTask {
+func BuildPageData(rows []SheetRow, selectedRow int, driveResolver func(name string) string) *PageData {
 	total := len(rows)
 	if total == 0 {
-		return &ClipTask{
-			IsCompleted: true,
+		return &PageData{
+			Clips:        nil,
+			SelectedClip: nil,
 		}
 	}
 
+	var clips []ClipItem
 	completed := 0
-	var firstPending *SheetRow
-	firstPendingIdx := -1
+	var firstPending *ClipItem
+	var exactSelected *ClipItem
 
-	for idx, row := range rows {
-		if row.IsComplete() {
+	for _, row := range rows {
+		isDone := row.IsComplete()
+		if isDone {
 			completed++
-		} else if firstPending == nil {
-			rowCopy := row
-			firstPending = &rowCopy
-			firstPendingIdx = idx
+		}
+
+		driveID := ""
+		if driveResolver != nil {
+			driveID = driveResolver(row.Name)
+		}
+
+		item := ClipItem{
+			RowIndex:    row.RowIndex,
+			Name:        row.Name,
+			Run:         row.Run,
+			ModelIn:     row.ModelIn,
+			ModelOut:    row.ModelOut,
+			ActualIn:    row.ActualIn,
+			ActualOut:   row.ActualOut,
+			DriveFileID: driveID,
+			IsComplete:  isDone,
+		}
+
+		if selectedRow > 0 && row.RowIndex == selectedRow {
+			item.IsSelected = true
+			exactSelected = &item
+		}
+
+		if !isDone && firstPending == nil {
+			firstPending = &item
+		}
+
+		clips = append(clips, item)
+	}
+
+	// If no specific row selected or row not found, select first pending, or first clip
+	var activeClip *ClipItem
+	if exactSelected != nil {
+		activeClip = exactSelected
+	} else if firstPending != nil {
+		activeClip = firstPending
+	} else if len(clips) > 0 {
+		activeClip = &clips[0]
+	}
+
+	if activeClip != nil {
+		for i := range clips {
+			if clips[i].RowIndex == activeClip.RowIndex {
+				clips[i].IsSelected = true
+				activeClip = &clips[i]
+				break
+			}
 		}
 	}
 
@@ -63,33 +110,12 @@ func BuildTaskQueue(rows []SheetRow, driveResolver func(name string) string) *Cl
 		progressPct = (completed * 100) / total
 	}
 
-	if firstPending == nil {
-		return &ClipTask{
-			TotalClips:     total,
-			CompletedCount: completed,
-			ProgressPct:    100,
-			IsCompleted:    true,
-		}
-	}
-
-	driveID := ""
-	if driveResolver != nil {
-		driveID = driveResolver(firstPending.Name)
-	}
-
-	return &ClipTask{
-		RowIndex:       firstPending.RowIndex,
-		Name:           firstPending.Name,
-		Run:            firstPending.Run,
-		ModelIn:        firstPending.ModelIn,
-		ModelOut:       firstPending.ModelOut,
-		ActualIn:       firstPending.ActualIn,
-		ActualOut:      firstPending.ActualOut,
-		DriveFileID:    driveID,
+	return &PageData{
+		Clips:          clips,
+		SelectedClip:   activeClip,
 		TotalClips:     total,
 		CompletedCount: completed,
-		QueuePosition:  firstPendingIdx + 1,
+		PendingCount:   total - completed,
 		ProgressPct:    progressPct,
-		IsCompleted:    false,
 	}
 }

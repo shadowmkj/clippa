@@ -16,19 +16,26 @@ func (r SheetRow) IsComplete() bool {
 	return strings.TrimSpace(r.ActualIn) != "" && strings.TrimSpace(r.ActualOut) != ""
 }
 
-type ClipTask struct {
-	RowIndex       int
-	Name           string
-	Run            string
-	ModelIn        string
-	ModelOut       string
-	ActualIn       string
-	ActualOut      string
-	DriveFileID    string
+type ClipItem struct {
+	RowIndex    int
+	Name        string
+	Run         string
+	ModelIn     string
+	ModelOut    string
+	ActualIn    string
+	ActualOut   string
+	DriveFileID string
+	IsComplete  bool
+	IsSelected  bool
+}
+
+type PageData struct {
+	Clips          []ClipItem
+	SelectedClip   *ClipItem
 	TotalClips     int
 	CompletedCount int
-	QueuePosition  int
+	PendingCount   int
 	ProgressPct    int
-	IsCompleted    bool
+	SavedSuccess   bool
 	ErrorMessage   string
 }

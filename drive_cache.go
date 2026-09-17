@@ -36,6 +36,16 @@ func (d *DriveCache) Get(name string) string {
 	return d.fileMap[name]
 }
 
+func (d *DriveCache) GetAllFileNames() []string {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	var names []string
+	for name := range d.fileMap {
+		names = append(names, name)
+	}
+	return names
+}
+
 func (d *DriveCache) Refresh(ctx context.Context) error {
 	if d.srv == nil || d.folderID == "" {
 		return nil

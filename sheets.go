@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sort"
 
 	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/option"
@@ -50,7 +51,7 @@ func NewGoogleWorkspaceClient(ctx context.Context, cfg *Config) (*GoogleWorkspac
 	}, nil
 }
 
-func (g *GoogleWorkspaceClient) FetchNextTask(ctx context.Context) (*ClipTask, error) {
+func (g *GoogleWorkspaceClient) FetchPageData(ctx context.Context, selectedRow int) (*PageData, error) {
 	readRange := fmt.Sprintf("%s!A:F", g.cfg.SheetName)
 	resp, err := g.sheetsSrv.Spreadsheets.Values.Get(g.cfg.SpreadsheetID, readRange).Context(ctx).Do()
 	if err != nil {
@@ -58,8 +59,8 @@ func (g *GoogleWorkspaceClient) FetchNextTask(ctx context.Context) (*ClipTask, e
 	}
 
 	rows := ParseSheetRows(resp.Values)
-	task := BuildTaskQueue(rows, g.driveCache.Resolve)
-	return task, nil
+	pageData := BuildPageData(rows, selectedRow, g.driveCache.Resolve)
+	return pageData, nil
 }
 
 func (g *GoogleWorkspaceClient) UpdateActualCounts(ctx context.Context, rowIndex int, actualIn, actualOut string) error {
@@ -80,4 +81,55 @@ func (g *GoogleWorkspaceClient) UpdateActualCounts(ctx context.Context, rowIndex
 	}
 
 	return nil
+}
+
+func (g *GoogleWorkspaceClient) SyncDriveClips(ctx context.Context) (int, error) {
+	if err := g.driveCache.Refresh(ctx); err != nil {
+		return 0, fmt.Errorf("failed to refresh drive files: %w", err)
+	}
+
+	readRange := fmt.Sprintf("%s!A:F", g.cfg.SheetName)
+	resp, err := g.sheetsSrv.Spreadsheets.Values.Get(g.cfg.SpreadsheetID, readRange).Context(ctx).Do()
+	if err != nil {
+		return 0, fmt.Errorf("failed to read sheet: %w", err)
+	}
+
+	existingRows := ParseSheetRows(resp.Values)
+	existingNames := make(map[string]bool)
+	for _, r := range existingRows {
+		existingNames[r.Name] = true
+	}
+
+	driveFiles := g.driveCache.GetAllFileNames()
+	sort.Strings(driveFiles)
+
+	var newRows [][]interface{}
+	// If sheet is completely empty, ensure header row
+	if len(resp.Values) == 0 {
+		newRows = append(newRows, []interface{}{"name", "run", "in", "out", "actual_in", "actual_out"})
+	}
+
+	for _, name := range driveFiles {
+		if !existingNames[name] {
+			newRows = append(newRows, []interface{}{name, "1", "", "", "", ""})
+		}
+	}
+
+	if len(newRows) == 0 {
+		return 0, nil
+	}
+
+	appendRange := fmt.Sprintf("%s!A:F", g.cfg.SheetName)
+	vr := &sheets.ValueRange{Values: newRows}
+	_, err = g.sheetsSrv.Spreadsheets.Values.Append(g.cfg.SpreadsheetID, appendRange, vr).
+		ValueInputOption("USER_ENTERED").
+		Context(ctx).
+		Do()
+
+	if err != nil {
+		return 0, fmt.Errorf("failed to append rows to sheet: %w", err)
+	}
+
+	log.Printf("[Sync] Appended %d missing clips to Google Sheet", len(newRows))
+	return len(newRows), nil
 }

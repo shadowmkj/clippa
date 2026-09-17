@@ -28,52 +28,40 @@ func TestParseSheetRows_ShortRowsAndPadded(t *testing.T) {
 	}
 }
 
-func TestBuildTaskQueue_FindsFirstIncomplete(t *testing.T) {
-	raw := [][]interface{}{
-		{"name", "run", "in", "out", "actual_in", "actual_out"},
-		{"clip_1.mp4", "1", "10", "12", "10", "12"},
-		{"clip_2.mp4", "1", "8", "9", "", ""},
-		{"clip_3.mp4", "2", "15", "14", "", ""},
-	}
-
-	rows := ParseSheetRows(raw)
-	mockResolver := func(name string) string {
-		return "drive-id-" + name
-	}
-
-	task := BuildTaskQueue(rows, mockResolver)
-	if task.IsCompleted {
-		t.Fatalf("expected task to not be completed")
-	}
-	if task.RowIndex != 3 {
-		t.Errorf("expected RowIndex 3 (clip_2.mp4), got %d", task.RowIndex)
-	}
-	if task.Name != "clip_2.mp4" {
-		t.Errorf("expected Name clip_2.mp4, got %s", task.Name)
-	}
-	if task.DriveFileID != "drive-id-clip_2.mp4" {
-		t.Errorf("expected DriveFileID drive-id-clip_2.mp4, got %s", task.DriveFileID)
-	}
-	if task.TotalClips != 3 || task.CompletedCount != 1 || task.QueuePosition != 2 {
-		t.Errorf("stats mismatch: Total=%d, Completed=%d, Pos=%d", task.TotalClips, task.CompletedCount, task.QueuePosition)
-	}
-	if task.ProgressPct != 33 {
-		t.Errorf("expected progress 33%%, got %d%%", task.ProgressPct)
+func TestBuildPageData_Empty(t *testing.T) {
+	page := BuildPageData(nil, 0, func(name string) string { return "" })
+	if page.TotalClips != 0 || page.CompletedCount != 0 || page.SelectedClip != nil {
+		t.Errorf("expected empty page data, got %+v", page)
 	}
 }
 
-func TestBuildTaskQueue_AllCompleted(t *testing.T) {
-	raw := [][]interface{}{
-		{"name", "run", "in", "out", "actual_in", "actual_out"},
-		{"clip_1.mp4", "1", "10", "12", "10", "12"},
+func TestBuildPageData_SelectionAndStats(t *testing.T) {
+	rows := []SheetRow{
+		{RowIndex: 2, Name: "clip_1.mp4", Run: "1", ModelIn: "10", ModelOut: "12", ActualIn: "10", ActualOut: "12"}, // Done
+		{RowIndex: 3, Name: "clip_2.mp4", Run: "1", ModelIn: "8", ModelOut: "9", ActualIn: "", ActualOut: ""},        // Pending
+		{RowIndex: 4, Name: "clip_3.mp4", Run: "2", ModelIn: "15", ModelOut: "14", ActualIn: "", ActualOut: ""},     // Pending
 	}
 
-	rows := ParseSheetRows(raw)
-	task := BuildTaskQueue(rows, func(name string) string { return "" })
-	if !task.IsCompleted {
-		t.Fatalf("expected task to be marked completed")
+	mockResolver := func(name string) string { return "drive-" + name }
+
+	// Default selection (selectedRow == 0) should pick first pending (clip_2.mp4, row 3)
+	page := BuildPageData(rows, 0, mockResolver)
+	if page.TotalClips != 3 || page.CompletedCount != 1 || page.PendingCount != 2 || page.ProgressPct != 33 {
+		t.Errorf("stats mismatch: Total=%d, Done=%d, Pending=%d, Pct=%d", page.TotalClips, page.CompletedCount, page.PendingCount, page.ProgressPct)
 	}
-	if task.CompletedCount != 1 || task.TotalClips != 1 || task.ProgressPct != 100 {
-		t.Errorf("stats mismatch for all completed: %+v", task)
+	if page.SelectedClip == nil || page.SelectedClip.RowIndex != 3 {
+		t.Fatalf("expected selected clip row 3, got %+v", page.SelectedClip)
+	}
+	if !page.Clips[0].IsComplete || page.Clips[1].IsComplete {
+		t.Errorf("clip complete status mismatch: clip1=%v, clip2=%v", page.Clips[0].IsComplete, page.Clips[1].IsComplete)
+	}
+	if !page.Clips[1].IsSelected || page.Clips[0].IsSelected {
+		t.Errorf("clip selection mismatch: clip0=%v, clip1=%v", page.Clips[0].IsSelected, page.Clips[1].IsSelected)
+	}
+
+	// Explicit selection for row 2
+	page2 := BuildPageData(rows, 2, mockResolver)
+	if page2.SelectedClip == nil || page2.SelectedClip.RowIndex != 2 {
+		t.Fatalf("expected selected clip row 2, got %+v", page2.SelectedClip)
 	}
 }

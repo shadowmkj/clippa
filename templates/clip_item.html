@@ -1,0 +1,24 @@
+<div
+  id="clip-item-{{.RowIndex}}"
+  class="clip-item {{if .IsSelected}}selected{{end}}"
+  data-status="{{if .IsComplete}}done{{else}}pending{{end}}"
+  hx-get="/clip?row={{.RowIndex}}"
+  hx-target="#task-card"
+  hx-swap="outerHTML">
+  <div class="clip-item-header">
+    <span class="clip-name">📹 {{.Name}}</span>
+    {{if .IsComplete}}
+      <span class="badge badge-done">✓ Done</span>
+    {{else}}
+      <span class="badge badge-pending">⏳ Pending</span>
+    {{end}}
+  </div>
+  <div class="clip-meta">
+    <span>Run {{.Run}} (Row {{.RowIndex}})</span>
+    {{if .IsComplete}}
+      <span style="color: #34d399;">Act: {{.ActualIn}} / {{.ActualOut}}</span>
+    {{else if or .ModelIn .ModelOut}}
+      <span style="color: #38bdf8;">Pred: {{.ModelIn}} / {{.ModelOut}}</span>
+    {{end}}
+  </div>
+</div>

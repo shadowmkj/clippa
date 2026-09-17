@@ -1,0 +1,29 @@
+<div class="sidebar-header">
+  <div class="stats-row">
+    <span>Progress</span>
+    <strong>{{.CompletedCount}} / {{.TotalClips}} Done ({{.ProgressPct}}%)</strong>
+  </div>
+  <div class="progress-bar-container">
+    <div class="progress-bar" style="width: {{.ProgressPct}}%;"></div>
+  </div>
+  <div class="filter-group">
+    <button id="filter-all" class="filter-btn active" onclick="filterClips('all')">All ({{.TotalClips}})</button>
+    <button id="filter-pending" class="filter-btn" onclick="filterClips('pending')">Pending ({{.PendingCount}})</button>
+    <button id="filter-done" class="filter-btn" onclick="filterClips('done')">Done ({{.CompletedCount}})</button>
+  </div>
+</div>
+
+<div id="clip-list" class="clip-list">
+  {{if eq (len .Clips) 0}}
+    <div style="padding: 2rem 1rem; text-align: center; color: var(--text-muted); font-size: 0.9rem;">
+      No clips found in sheet.<br><br>
+      <button class="btn-sm btn-primary-sm" hx-post="/sync-drive" hx-target="body">
+        📥 Sync 9 Clips from Drive
+      </button>
+    </div>
+  {{else}}
+    {{range .Clips}}
+      {{template "clip_item.html" .}}
+    {{end}}
+  {{end}}
+</div>

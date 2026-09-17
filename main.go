@@ -25,7 +25,12 @@ func main() {
 		log.Fatalf("Fatal: failed to initialize Google Workspace client: %v", err)
 	}
 
-	tmpl, err := template.ParseFiles("templates/index.html", "templates/task_card.html")
+	tmpl, err := template.ParseFiles(
+		"templates/index.html",
+		"templates/sidebar.html",
+		"templates/clip_item.html",
+		"templates/task_card.html",
+	)
 	if err != nil {
 		log.Fatalf("Fatal: failed to parse templates: %v", err)
 	}
@@ -33,7 +38,7 @@ func main() {
 	mux := NewServer(client, tmpl)
 
 	addr := ":" + cfg.Port
-	log.Printf("🚗 Clippa server listening at http://localhost%s", addr)
+	log.Printf("🚗 Clippa Master-Detail Review Server running at http://localhost%s", addr)
 	log.Printf("Spreadsheet ID: %s (Sheet: %s)", cfg.SpreadsheetID, cfg.SheetName)
 	log.Printf("Drive Folder ID: %s", cfg.DriveFolderID)
 

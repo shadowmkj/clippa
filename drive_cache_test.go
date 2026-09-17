@@ -23,3 +23,18 @@ func TestDriveCache_ManualPopulateAndGet(t *testing.T) {
 		t.Errorf("expected empty string for missing file, got '%s'", id)
 	}
 }
+
+func TestDriveCache_GetAllFileNames(t *testing.T) {
+	cache := &DriveCache{
+		folderID: "test-folder",
+		fileMap:  make(map[string]string),
+	}
+
+	cache.Set("clip_a.mp4", "id_a")
+	cache.Set("clip_b.mp4", "id_b")
+
+	names := cache.GetAllFileNames()
+	if len(names) != 2 {
+		t.Fatalf("expected 2 filenames, got %d", len(names))
+	}
+}
