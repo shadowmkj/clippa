@@ -1,11 +1,11 @@
 # ==============================================================================
 # Build Stage
 # ==============================================================================
-FROM golang:1.23-alpine AS builder
+FROM golang:alpine AS builder
 
 WORKDIR /build
 
-# Install git/certs if needed for module downloads
+# Install CA certificates and git
 RUN apk add --no-cache ca-certificates git
 
 # Cache go modules
@@ -22,7 +22,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o clippa .
 # ==============================================================================
 # Runtime Stage
 # ==============================================================================
-FROM alpine:3.20
+FROM alpine:latest
 
 # Install CA certificates for TLS to Google APIs and tzdata for timestamps
 RUN apk --no-cache add ca-certificates tzdata && \
