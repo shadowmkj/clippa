@@ -1,0 +1,101 @@
+<div id="task-card" class="card">
+  {{if .IsCompleted}}
+    <div class="completed-state">
+      <div class="completed-icon">🎉</div>
+      <h2 class="completed-title">All Clips Completed!</h2>
+      <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
+        All {{.TotalClips}} traffic video clips have been reviewed and verified in Google Sheets.
+      </p>
+      <div class="badge badge-success" style="font-size: 0.9rem; padding: 0.5rem 1rem;">
+        ✓ {{.CompletedCount}} of {{.TotalClips}} logged (100%)
+      </div>
+    </div>
+  {{else}}
+    <div class="card-header">
+      <div>
+        <div class="clip-title">
+          📹 {{.Name}}
+          <span class="badge">Run {{.Run}}</span>
+        </div>
+        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">
+          Row {{.RowIndex}} in Google Sheet
+        </div>
+      </div>
+      <div>
+        <span class="badge badge-primary">Clip {{.QueuePosition}} of {{.TotalClips}} ({{.ProgressPct}}%)</span>
+      </div>
+    </div>
+
+    <div class="progress-bar-container">
+      <div class="progress-bar" style="width: {{.ProgressPct}}%;"></div>
+    </div>
+
+    {{if .ErrorMessage}}
+      <div class="alert alert-danger">
+        <strong>Error:</strong> {{.ErrorMessage}}
+      </div>
+    {{end}}
+
+    {{if .DriveFileID}}
+      <div class="video-wrapper">
+        <iframe
+          src="https://drive.google.com/file/d/{{.DriveFileID}}/preview"
+          allow="autoplay; fullscreen"
+          allowfullscreen>
+        </iframe>
+      </div>
+    {{else}}
+      <div class="alert alert-warning">
+        ⚠️ <strong>Video Preview Not Available:</strong> File <code>{{.Name}}</code> was not found in the designated Google Drive folder.
+      </div>
+    {{end}}
+
+    <div class="model-metrics">
+      <div class="metric-box">
+        <span class="metric-label">Model Predicted In</span>
+        <span class="metric-value">{{if .ModelIn}}{{.ModelIn}}{{else}}—{{end}}</span>
+      </div>
+      <div class="metric-box">
+        <span class="metric-label">Model Predicted Out</span>
+        <span class="metric-value">{{if .ModelOut}}{{.ModelOut}}{{else}}—{{end}}</span>
+      </div>
+    </div>
+
+    <form hx-post="/submit" hx-target="#task-card" hx-swap="outerHTML">
+      <input type="hidden" name="row_index" value="{{.RowIndex}}">
+      <input type="hidden" name="name" value="{{.Name}}">
+      <input type="hidden" name="run" value="{{.Run}}">
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="actual_in">Actual In (Ground Truth) *</label>
+          <input
+            type="number"
+            id="actual_in"
+            name="actual_in"
+            value="{{.ActualIn}}"
+            required
+            min="0"
+            autofocus
+            placeholder="e.g. 10">
+        </div>
+        <div class="form-group">
+          <label for="actual_out">Actual Out (Ground Truth) *</label>
+          <input
+            type="number"
+            id="actual_out"
+            name="actual_out"
+            value="{{.ActualOut}}"
+            required
+            min="0"
+            placeholder="e.g. 12">
+        </div>
+      </div>
+
+      <button type="submit" class="btn">
+        <span>Save & Next Clip ➔</span>
+        <span class="htmx-indicator">⏳</span>
+      </button>
+    </form>
+  {{end}}
+</div>

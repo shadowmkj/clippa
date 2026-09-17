@@ -1,0 +1,7 @@
+{
+  "spreadsheet_id": "YOUR_GOOGLE_SPREADSHEET_ID",
+  "sheet_name": "Sheet1",
+  "drive_folder_id": "YOUR_GOOGLE_DRIVE_FOLDER_ID",
+  "credentials_file": "credentials.json",
+  "port": "8080"
+}
